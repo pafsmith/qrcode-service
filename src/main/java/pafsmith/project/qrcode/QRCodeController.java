@@ -1,10 +1,11 @@
 package pafsmith.project.qrcode;
 
-import java.awt.Color;
-import java.awt.Graphics2D;
+import com.google.zxing.BarcodeFormat;
+import com.google.zxing.client.j2se.MatrixToImageWriter;
+import com.google.zxing.common.BitMatrix;
+import com.google.zxing.qrcode.QRCodeWriter;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
-import java.io.IOException;
 import java.util.Map;
 import java.util.Set;
 import javax.imageio.ImageIO;
@@ -18,14 +19,16 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class QRCodeController {
 
-  public BufferedImage qrGenerator(int height, int width) {
-    BufferedImage image = new BufferedImage(height, width, BufferedImage.TYPE_INT_RGB);
-    Graphics2D g = image.createGraphics();
+  public BufferedImage qrGenerator(String data, int height, int width) {
 
-    g.setColor(Color.WHITE);
-    g.fillRect(0, 0, height, width);
-
-    return image;
+    QRCodeWriter writer = new QRCodeWriter();
+    try {
+      BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, width, height);
+      BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
+      return image;
+    } catch (Exception e) {
+      throw new RuntimeException(e);
+    }
   }
 
   @GetMapping("/api/health")
@@ -42,39 +45,28 @@ class QRCodeController {
 
   @GetMapping("/api/qrcode")
   public ResponseEntity<?> qrcode(
+      @RequestParam(name = "contents", defaultValue = "") String contents,
       @RequestParam(name = "size", defaultValue = "250") int size,
-      @RequestParam(name = "contents", required = false) String contents,
       @RequestParam(name = "type", defaultValue = "png") String type) {
-
-    if (contents == "" || contents == null) {
+    if (contents == null || contents.isBlank()) {
       return ResponseEntity.badRequest().body(Map.of("error", "Contents cannot be null or blank"));
     }
     if (size < 150 || size > 350) {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
     }
-    if (!SUPPORT_FORMATS.contains(type)) {
-      return ResponseEntity.badRequest()
-          .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
-    }
-
-    if (size < 150 || size > 350) {
-      return ResponseEntity.badRequest()
-          .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
-    }
 
     if (!SUPPORT_FORMATS.contains(type)) {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
     }
 
-    BufferedImage image = qrGenerator(size, size);
-
-    try (var boas = new ByteArrayOutputStream()) {
-      ImageIO.write(image, type, boas);
-      byte[] bytes = boas.toByteArray();
+    var img = qrGenerator(contents, size, size);
+    try (var out = new ByteArrayOutputStream()) {
+      ImageIO.write(img, type, out);
+      byte[] bytes = out.toByteArray();
       return ResponseEntity.ok().contentType(MEDIA_TYPES.get(type)).body(bytes);
-    } catch (IOException e) {
+    } catch (Exception e) {
       return ResponseEntity.internalServerError().body(e.getMessage());
     }
   }
