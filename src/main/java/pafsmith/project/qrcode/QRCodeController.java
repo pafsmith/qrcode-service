@@ -1,17 +1,17 @@
 package pafsmith.project.qrcode;
 
-import org.springframework.http.HttpStatus;
-import org.springframework.http.MediaType;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.RestController;
-
+import java.awt.Color;
+import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import javax.imageio.ImageIO;
-import java.awt.Graphics2D;
-import java.awt.Color;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.MediaType;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
 
 @RestController
 class QRCodeController {
@@ -24,7 +24,6 @@ class QRCodeController {
     g.fillRect(0, 0, height, width);
 
     return image;
-
   }
 
   @GetMapping("/api/health")
@@ -33,8 +32,25 @@ class QRCodeController {
   }
 
   @GetMapping("/api/qrcode")
-  public ResponseEntity<byte[]> qrcode() throws IOException {
-    BufferedImage image = qrGenerator(250, 250);
+  public ResponseEntity<?> qrcode(
+      @RequestParam(name = "size", required = false, defaultValue = "250") String size) {
+
+    int inputSize;
+    try {
+      inputSize = Integer.parseInt(size);
+    } catch (NumberFormatException e) {
+      return ResponseEntity.badRequest()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body("{\"error\": \"Image size must be between 150 and 350 pixels\"}");
+    }
+
+    if (inputSize < 150 || inputSize > 350) {
+      return ResponseEntity.badRequest()
+          .contentType(MediaType.APPLICATION_JSON)
+          .body("{\"error\": \"Image size must be between 150 and 350 pixels\"}");
+    }
+
+    BufferedImage image = qrGenerator(inputSize, inputSize);
 
     try (var boas = new ByteArrayOutputStream()) {
       ImageIO.write(image, "png", boas);
