@@ -45,22 +45,12 @@ class QRCodeController {
 
   @GetMapping("/api/qrcode")
   public ResponseEntity<?> qrcode(
+      @RequestParam(name = "contents", defaultValue = "") String contents,
       @RequestParam(name = "size", defaultValue = "250") int size,
-      @RequestParam(name = "contents", required = false) String contents,
       @RequestParam(name = "type", defaultValue = "png") String type) {
-
-    if (contents == "" || contents == null) {
+    if (contents == null || contents.isBlank()) {
       return ResponseEntity.badRequest().body(Map.of("error", "Contents cannot be null or blank"));
     }
-    if (size < 150 || size > 350) {
-      return ResponseEntity.badRequest()
-          .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
-    }
-    if (!SUPPORT_FORMATS.contains(type)) {
-      return ResponseEntity.badRequest()
-          .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
-    }
-
     if (size < 150 || size > 350) {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
