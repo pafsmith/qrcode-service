@@ -5,6 +5,8 @@ import java.awt.Graphics2D;
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.util.Map;
+import java.util.Set;
 import javax.imageio.ImageIO;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,33 +33,44 @@ class QRCodeController {
     return ResponseEntity.status(HttpStatus.OK).build();
   }
 
+  static final Set<String> SUPPORT_FORMATS = Set.of("png", "jpg", "gif");
+  static final Map<String, MediaType> MEDIA_TYPES =
+      Map.of(
+          "png", MediaType.IMAGE_PNG,
+          "jpeg", MediaType.IMAGE_JPEG,
+          "gif", MediaType.IMAGE_GIF);
+
   @GetMapping("/api/qrcode")
   public ResponseEntity<?> qrcode(
-      @RequestParam(name = "size", required = false, defaultValue = "250") String size) {
-
-    int inputSize;
-    try {
-      inputSize = Integer.parseInt(size);
-    } catch (NumberFormatException e) {
+      @RequestParam(name = "size", defaultValue = "250") int size,
+      @RequestParam(name = "type", defaultValue = "png") String type) {
+    if (size < 150 || size > 350) {
       return ResponseEntity.badRequest()
-          .contentType(MediaType.APPLICATION_JSON)
-          .body("{\"error\": \"Image size must be between 150 and 350 pixels\"}");
+          .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
+    }
+    if (!SUPPORT_FORMATS.contains(type)) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
     }
 
-    if (inputSize < 150 || inputSize > 350) {
+    if (size < 150 || size > 350) {
       return ResponseEntity.badRequest()
-          .contentType(MediaType.APPLICATION_JSON)
-          .body("{\"error\": \"Image size must be between 150 and 350 pixels\"}");
+          .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
     }
 
-    BufferedImage image = qrGenerator(inputSize, inputSize);
+    if (!SUPPORT_FORMATS.contains(type)) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
+    }
+
+    BufferedImage image = qrGenerator(size, size);
 
     try (var boas = new ByteArrayOutputStream()) {
-      ImageIO.write(image, "png", boas);
+      ImageIO.write(image, type, boas);
       byte[] bytes = boas.toByteArray();
-      return ResponseEntity.ok().contentType(MediaType.IMAGE_PNG).body(bytes);
+      return ResponseEntity.ok().contentType(MEDIA_TYPES.get(type)).body(bytes);
     } catch (IOException e) {
-      throw new RuntimeException(e);
+      return ResponseEntity.internalServerError().body(e.getMessage());
     }
   }
 }
