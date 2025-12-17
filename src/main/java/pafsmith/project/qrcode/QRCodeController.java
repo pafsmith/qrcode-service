@@ -64,6 +64,11 @@ class QRCodeController {
           .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
     }
 
+    if (!CORRECTION_TYPES.containsKey(correction)) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Permitted error correction levels are L, M, Q, H"));
+    }
+
     if (!SUPPORT_FORMATS.contains(type)) {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
