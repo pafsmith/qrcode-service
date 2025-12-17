@@ -43,6 +43,7 @@ class QRCodeController {
       "png", MediaType.IMAGE_PNG,
       "jpeg", MediaType.IMAGE_JPEG,
       "gif", MediaType.IMAGE_GIF);
+
   static final Map<String, ErrorCorrectionLevel> CORRECTION_TYPES = Map.of(
       "L", ErrorCorrectionLevel.L,
       "M", ErrorCorrectionLevel.M,
