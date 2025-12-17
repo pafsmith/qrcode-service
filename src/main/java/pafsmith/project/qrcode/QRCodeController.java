@@ -39,7 +39,7 @@ class QRCodeController {
     return ResponseEntity.status(HttpStatus.OK).build();
   }
 
-  static final Set<String> SUPPORT_FORMATS = Set.of("png", "jpg", "gif");
+  static final Set<String> SUPPORT_FORMATS = Set.of("png", "jpeg", "gif");
   static final Map<String, MediaType> MEDIA_TYPES = Map.of(
       "png", MediaType.IMAGE_PNG,
       "jpeg", MediaType.IMAGE_JPEG,
