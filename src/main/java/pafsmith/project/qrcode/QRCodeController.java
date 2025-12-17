@@ -4,6 +4,8 @@ import com.google.zxing.BarcodeFormat;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
@@ -37,16 +39,21 @@ class QRCodeController {
   }
 
   static final Set<String> SUPPORT_FORMATS = Set.of("png", "jpg", "gif");
-  static final Map<String, MediaType> MEDIA_TYPES =
-      Map.of(
-          "png", MediaType.IMAGE_PNG,
-          "jpeg", MediaType.IMAGE_JPEG,
-          "gif", MediaType.IMAGE_GIF);
+  static final Map<String, MediaType> MEDIA_TYPES = Map.of(
+      "png", MediaType.IMAGE_PNG,
+      "jpeg", MediaType.IMAGE_JPEG,
+      "gif", MediaType.IMAGE_GIF);
+  static final Map<String, ErrorCorrectionLevel> CORRECTION_TYPES = Map.of(
+      "L", ErrorCorrectionLevel.L,
+      "M", ErrorCorrectionLevel.M,
+      "H", ErrorCorrectionLevel.H,
+      "Q", ErrorCorrectionLevel.Q);
 
   @GetMapping("/api/qrcode")
   public ResponseEntity<?> qrcode(
       @RequestParam(name = "contents", defaultValue = "") String contents,
       @RequestParam(name = "size", defaultValue = "250") int size,
+      @RequestParam(name = "correction", defaultValue = "L") String correction,
       @RequestParam(name = "type", defaultValue = "png") String type) {
     if (contents == null || contents.isBlank()) {
       return ResponseEntity.badRequest().body(Map.of("error", "Contents cannot be null or blank"));
