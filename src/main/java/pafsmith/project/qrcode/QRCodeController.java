@@ -1,9 +1,12 @@
 package pafsmith.project.qrcode;
 
 import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
+import com.google.zxing.qrcode.decoder.ErrorCorrectionLevel;
+
 import java.awt.image.BufferedImage;
 import java.io.ByteArrayOutputStream;
 import java.util.Map;
@@ -19,11 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class QRCodeController {
 
-  public BufferedImage qrGenerator(String data, int height, int width) {
+  public BufferedImage qrGenerator(String data, int height, int width, Map<EncodeHintType, ?> hints) {
 
     QRCodeWriter writer = new QRCodeWriter();
     try {
-      BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, width, height);
+      BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, width, height, hints);
       BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
       return image;
     } catch (Exception e) {
@@ -36,17 +39,23 @@ class QRCodeController {
     return ResponseEntity.status(HttpStatus.OK).build();
   }
 
-  static final Set<String> SUPPORT_FORMATS = Set.of("png", "jpg", "gif");
-  static final Map<String, MediaType> MEDIA_TYPES =
-      Map.of(
-          "png", MediaType.IMAGE_PNG,
-          "jpeg", MediaType.IMAGE_JPEG,
-          "gif", MediaType.IMAGE_GIF);
+  static final Set<String> SUPPORT_FORMATS = Set.of("png", "jpeg", "gif");
+  static final Map<String, MediaType> MEDIA_TYPES = Map.of(
+      "png", MediaType.IMAGE_PNG,
+      "jpeg", MediaType.IMAGE_JPEG,
+      "gif", MediaType.IMAGE_GIF);
+
+  static final Map<String, ErrorCorrectionLevel> CORRECTION_TYPES = Map.of(
+      "L", ErrorCorrectionLevel.L,
+      "M", ErrorCorrectionLevel.M,
+      "H", ErrorCorrectionLevel.H,
+      "Q", ErrorCorrectionLevel.Q);
 
   @GetMapping("/api/qrcode")
   public ResponseEntity<?> qrcode(
       @RequestParam(name = "contents", defaultValue = "") String contents,
       @RequestParam(name = "size", defaultValue = "250") int size,
+      @RequestParam(name = "correction", defaultValue = "L") String correction,
       @RequestParam(name = "type", defaultValue = "png") String type) {
     if (contents == null || contents.isBlank()) {
       return ResponseEntity.badRequest().body(Map.of("error", "Contents cannot be null or blank"));
@@ -56,12 +65,18 @@ class QRCodeController {
           .body(Map.of("error", "Image size must be between 150 and 350 pixels"));
     }
 
+    if (!CORRECTION_TYPES.containsKey(correction)) {
+      return ResponseEntity.badRequest()
+          .body(Map.of("error", "Permitted error correction levels are L, M, Q, H"));
+    }
+
     if (!SUPPORT_FORMATS.contains(type)) {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
     }
+    Map<EncodeHintType, ?> hints = Map.of(EncodeHintType.ERROR_CORRECTION, CORRECTION_TYPES.get(correction));
 
-    var img = qrGenerator(contents, size, size);
+    var img = qrGenerator(contents, size, size, hints);
     try (var out = new ByteArrayOutputStream()) {
       ImageIO.write(img, type, out);
       byte[] bytes = out.toByteArray();
