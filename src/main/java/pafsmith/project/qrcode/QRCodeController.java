@@ -1,6 +1,7 @@
 package pafsmith.project.qrcode;
 
 import com.google.zxing.BarcodeFormat;
+import com.google.zxing.EncodeHintType;
 import com.google.zxing.client.j2se.MatrixToImageWriter;
 import com.google.zxing.common.BitMatrix;
 import com.google.zxing.qrcode.QRCodeWriter;
@@ -21,11 +22,11 @@ import org.springframework.web.bind.annotation.RestController;
 @RestController
 class QRCodeController {
 
-  public BufferedImage qrGenerator(String data, int height, int width) {
+  public BufferedImage qrGenerator(String data, int height, int width, Map<EncodeHintType, ?> hints) {
 
     QRCodeWriter writer = new QRCodeWriter();
     try {
-      BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, width, height);
+      BitMatrix bitMatrix = writer.encode(data, BarcodeFormat.QR_CODE, width, height, hints);
       BufferedImage image = MatrixToImageWriter.toBufferedImage(bitMatrix);
       return image;
     } catch (Exception e) {
@@ -73,8 +74,9 @@ class QRCodeController {
       return ResponseEntity.badRequest()
           .body(Map.of("error", "Only png, jpeg and gif image types are supported"));
     }
+    Map<EncodeHintType, ?> hints = Map.of(EncodeHintType.ERROR_CORRECTION, CORRECTION_TYPES.get(correction));
 
-    var img = qrGenerator(contents, size, size);
+    var img = qrGenerator(contents, size, size, hints);
     try (var out = new ByteArrayOutputStream()) {
       ImageIO.write(img, type, out);
       byte[] bytes = out.toByteArray();
